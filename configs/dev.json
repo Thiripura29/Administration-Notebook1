@@ -1,0 +1,27 @@
+{
+"dataproductname": "administration",
+"catalog_name":"lakehouse_dev",
+"schema_name":"administration",
+"bucketname":"lakehouse-administration1",
+"bronze-prefix":"bronze",
+"silver-prefix":"silver",
+"gold-prefix":"gold",
+"dq-prefix":"dq",
+"database-config":{
+  "healthcare":{
+    "url":"jdbc:mysql://my-infra-mysql.cze4w0umyt03.ap-south-1.rds.amazonaws.com",
+    "scope_name":"health-care-scope",
+    "driver":"com.mysql.cj.jdbc.Driver",
+    "sources":[
+      {
+        "table_name":"organizations",
+        "load_type":"full_load"
+      },
+       {
+        "table_name":"providers",
+        "load_type":"full_load"
+      }
+    ]
+  }
+}
+}
