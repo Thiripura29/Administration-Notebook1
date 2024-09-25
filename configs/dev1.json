@@ -4,6 +4,7 @@
 	"schema-name":"administration",
 	"bucket-name":"lakehouse-administration1",
 	"bronze-prefix":"bronze",
+	"audit_table":"pipeline_audit_log_table",
 	"silver-prefix":"silver",
 	"gold-prefix":"gold",
 	"dq-prefix":"dq",

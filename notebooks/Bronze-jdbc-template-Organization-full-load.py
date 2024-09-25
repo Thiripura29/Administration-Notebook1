@@ -80,15 +80,16 @@ bronze_prefix=config["bronze-prefix"]
 table_name="organizations"
 catalog=config["catalog-name"]
 schema_name=config["schema-name"]
-
+partitions=["year","month","day"]
 target_path=f"s3://{db_bucket}/{bronze_prefix}/{table_name}"
-target_table_path=f"{catalog}.{schema_name}.bronze_{table_name}"
+target_table_name="bronze_"+table_name
+target_table_path=f"{catalog}.{schema_name}.{target_table_name}"
 
 transform_df\
     .write\
     .format("delta")\
     .mode("overwrite")\
-    .partitionBy("year","month","day")\
+    .partitionBy(*partitions)\
     .option("path",target_path)\
     .saveAsTable(target_table_path)
 
@@ -96,3 +97,34 @@ transform_df\
 
 # MAGIC %sql
 # MAGIC select * from lakehouse_dev.administration.bronze_organizations
+
+# COMMAND ----------
+
+df=spark.sql("select * from lakehouse_dev.administration.bronze_organizations")  
+display(df)
+
+# COMMAND ----------
+
+partitions_info=identify_partitions_predicate(transform_df,partitions)
+
+# COMMAND ----------
+
+audit_table_name=f"{catalog}.{schema_name}.{config['audit_table']}"
+make_audit_entry(
+{
+    "sink_name":f"{target_table_name}_sink",
+    "data_load_trype":"incremental",
+    "db_schema_name":schema_name,
+    "db_table_name":table_name,
+    "data_storage_path":target_path,
+    "timestamp_or_id_column_name":"",
+    "last_processed_timestamp_or_id_column_value":"",
+    "partition_column_info":partitions_info
+},audit_table_name)
+
+
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from lakehouse_dev.administration.pipeline_audit_log_table
