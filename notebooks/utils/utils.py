@@ -37,11 +37,11 @@ def identify_partitions_predicate(df,partition_columns):
     conditions = []
     for row in df.select(*partition_columns).distinct().collect():
         conditions_parts=[f"{col_name}='{row[col_name]}'" for col_name in partition_columns]
-        condition="AND".join(conditions_parts)
+        condition="AND ".join(conditions_parts)
         conditions.append(f"({condition})")
 
         #combine conditions with OR
-        partition_predicate=" OR ".join(conditions)
+        partition_predicate="OR ".join(conditions)
 
         return partition_predicate
 

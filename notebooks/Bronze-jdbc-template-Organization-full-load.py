@@ -106,6 +106,7 @@ display(df)
 # COMMAND ----------
 
 partitions_info=identify_partitions_predicate(transform_df,partitions)
+display(partitions_info)
 
 # COMMAND ----------
 
