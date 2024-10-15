@@ -54,7 +54,7 @@ display(bronze_organization_df)
 
 #apply DQ checks
 
-# python OpsEngine - setup.py bdist_wheel - create wheel file and upload into s3 location 
+# python OpsEngine - python setup.py bdist_wheel - create wheel file and upload into s3 location 
 # https://greatexpectations.io/expectations/expect_column_values_to_match_regex
 
 dq_spec={
@@ -63,32 +63,28 @@ dq_spec={
       "dq_name": "silver-administration-organization_dq_checks",
       "input_id": "bronze_organization_df",
       "dq_type": "validator",
-      "store_backend": "s3",
-      "bucket": "lakehouse-administration1",
-      "data_docs_bucket": "lakehouse-administration1",
-      "validations_store_prefix": "dq/silver/silver-administration-organization/validations",
-      "checkpoint_store_prefix": "dq/silver/silver-administration-organization/checkpoint",
-      "expectations_store_prefix": "dq/silver/silver-administration-organization/expectations_store",
-      "data_docs_prefix": "dq/silver/silver-administration-organization/data_docs",
+      "store_backend": "file_system",
+      "local_fs_root_dir": "/Volumes/lakehouse_dev/administration/dq/silver/silver-administration-organization/root_dir",
+      "data_docs_local_fs":"/Volumes/lakehouse_dev/administration/dq/silver/silver-administration-organization/data_docs",
       "result_sink_db_table": "lakehouse_dev.administration.administration_dq_spec",
-      "result_sink_location": "s3://lakehouse-administration1/dq/administration/results",
+      "result_sink_location": "/Volumes/lakehouse_dev/administration/dq/administration/results",
       "fail_on_error": False,
-      "result_sink_explode": True,
-      "tag_source_data": True,
+      "result_sink_explode": False,
+      "tag_source_data": False,
       "gx_result_format": "COMPLETE",
       "unexpected_rows_pk": [
-        "loan_id"
+        "Id"
       ],
       "dq_functions": [
         {
-          "function": "ExpectColumnValuesToMatchRegex",
+          "function": "expect_column_values_to_match_regex",
           "args": {
             "column": "PHONE",
              "regex":"^(\d{3}[- ]?)?\d{3}[- ]?\d{4}$"
           }
         },
         {
-          "function": "ExpectColumnValuesToMatchRegex",
+          "function": "expect_column_values_to_match_regex",
           "args": {
             "column": "ZIP",
              "regex":"^\d{5}$"
@@ -105,11 +101,11 @@ dq_spec={
 
 # COMMAND ----------
 
-# MAGIC %pip install ops
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
-from  ops.dq_processor.dq_loader import DQLoader
+from mlops.dq_processors.dq_loader import DQLoader
 dq_loader=DQLoader(dq_spec)
 df_dict={"bronze_organization_df":bronze_organization_df}
 dq_df_dict=dq_loader.process_dq(spark,df_dict)
