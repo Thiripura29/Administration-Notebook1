@@ -116,7 +116,7 @@ make_audit_entry(
     "sink_name":f"{target_table_name}_sink",
     "data_load_trype":"incremental",
     "db_schema_name":schema_name,
-    "db_table_name":table_name,
+    "db_table_name":target_table_name,
     "data_storage_path":target_path,
     "timestamp_or_id_column_name":"",
     "last_processed_timestamp_or_id_column_value":"",

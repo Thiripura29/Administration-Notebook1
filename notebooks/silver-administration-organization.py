@@ -6,7 +6,7 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC delete from lakehouse_dev.administration.pipeline_audit_log_table where audit_id in('94d38382-a3e7-468d-886b-5ed58241a024')
+# MAGIC delete from lakehouse_dev.administration.pipeline_audit_log_table 
 
 # COMMAND ----------
 
@@ -22,7 +22,7 @@ def get_partition_info(source_name, db_table_name,db_schema_name):
           from lakehouse_dev.administration.pipeline_audit_log_table
           where db_table_name='{db_table_name}' and db_schema_name='{db_schema_name}'
           and (not array_contains(processed_status_info_array,'{source_name}') or processed_status_info_array is null)
-          order by created_date asc
+          order by created_date desc
           """).collect()
     partition_to_be_processed=[partition[1] for partition in partition_info_list]
     partition_id_to_be_processed=[partition[0] for partition in partition_info_list]
@@ -36,7 +36,7 @@ source_name="silver-administration-organization"
 
 # COMMAND ----------
 
-bronze_organization_partition_to_be_processed,bronze_organization_partition_id_to_be_processed=get_partition_info(source_name,'bronze_organizations','administration')
+bronze_organization_partition_id_to_be_processed,bronze_organization_partition_to_be_processed=get_partition_info(source_name,'bronze_organizations','administration')
 bronze_organization_predicate= " OR ".join(bronze_organization_partition_to_be_processed)
 print(bronze_organization_predicate)
 
@@ -227,4 +227,11 @@ print(bronze_organization_partition_id_to_be_processed)
 # COMMAND ----------
 
 #Apply transformations to the good records
+
+spark.sql(f"""
+          update lakehouse_dev.administration.pipeline_audit_log_table
+          set processed_status_info_array= array_union(processed_status_info_array,array('{source_name}'))
+          where audit_id in ('{bronze_organization_partition_id_to_be_processed}')
+          
+            """
 
