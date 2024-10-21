@@ -235,3 +235,137 @@ spark.sql(f"""
           
             """
 
+
+# COMMAND ----------
+
+import json
+from pyspark.sql.functions import *
+
+#standartize the columns and do transalations
+def standardized_columns_names(df):
+    new_df_columns = [column.lower() for column in df.columns]
+    return df.toDF(*new_df_columns)
+
+def get_spark_schema_df(input_df):
+    #schema validations and drifting
+    spark_schema_json_tmp=json.loads(input_df.schema.json())
+    print(spark_schema_json_tmp)
+    spark_schema_json={"schema":[]}
+    spark_schema=spark_schema_json["schema"]
+
+    for field in spark_schema_json_tmp["fields"]:
+        spark_schema.append(
+            {
+                "name":field["name"],
+                "type":field["type"]
+            }
+                            )
+        print(spark_schema)
+    return sc.parallelize(spark_schema).toDF()
+
+def get_user_defined_schema(user_defined_schema_json):
+    new_col_schema=["format","how","is_partition","name","partition_level","partition_stratrgy","user_type"]
+    return sc.parallelize(user_defined_schema_json["schema"]).toDF(new_col_schema)
+
+def merge_spark_user_defined_schema(user_defined_schema_df,spark_schema_df):
+    return user_defined_schema_df.join(spark_schema_df,on="name",how="left")
+
+def get_schema_drift_df(input_df):
+    tmp_df=input_df.select("name","type","user_type","format","how","is_partition","partition_level","partition_stratrgy")
+    return tmp_df.filter(udf_compare_spark_type_userdefined_type(col("type"),col("user_type")))
+
+def get_missing_value_df(schema_drift_df):
+    default_values={"int":None,"long":None,"string":None,"struct":None,"list":None,"date":None,"boolean":None,"timestamp":None,"date":None}
+    missing_columns_df=schema_drift_df.where("type IS NULL and is_partition != 'yes'")
+    missing_columns=missing_columns_df.collect()
+    return missing_columns
+
+def get_assign_new_datatype_df(argument):
+    switcher={
+        "int":IntegerType(),
+        "string":StringType(),
+        "long":LongType(),
+        "boolean":BooleanType(),
+        "date":DateType(),
+    }
+    return switcher.get(argument,"datatype not found")
+
+def get_assign_new_datatype_df(main_df,schema_drift_df):
+    type_mismatch_df=schema_drift_df.where("type IS NOT NULL and is_partition != 'yes'")
+    type_mismatch=type_mismatch_df.collect()
+    for item in type_mismatch:
+        columnname=item[0]
+        current_datatype_string=item[2]
+        user_data_type=item[1]
+        print(f"user data type is : {user_data_type}")  
+        if user_data_type !="timestamp":
+            new_data_type=get_assign_new_datatype_df(user_data_type)
+            if new_data_type !="datatype not found":
+                main_df=main_df.withColumn(columnname,col(columnname).cast(new_data_type))
+            else:
+                print(f"data type: {user_data_type} not found for column: {columnname}")
+                print("exited")
+                exit(0)
+        else:
+            if current_datatype_string =="string":
+                timestamp_format=item[3]
+                main_df=main_df.withColumn(columnname,to_timestamp(col(columnname),timestamp_format))
+        return main_df
+
+
+
+
+
+
+
+
+# COMMAND ----------
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import *
+
+#UDF#
+###################
+@udf(returnType=BooleanType())
+def udf_compare_spark_type_userdefined_type(sparktype,user_defined_type):
+    return not (sparktype==user_defined_type)
+
+# COMMAND ----------
+
+standardized_columns_df=standardized_columns_names(bronze_organization_df)
+main_df=standardized_columns_df
+spark_schema_df=get_spark_schema_df(standardized_columns_df)
+display(spark_schema_df)
+user_defined_schema_df=get_user_defined_schema(schema)
+display(user_defined_schema_df)
+schema_joined_df=merge_spark_user_defined_schema(user_defined_schema_df,spark_schema_df)
+display(schema_joined_df)
+schema_drift_df=get_schema_drift_df(schema_joined_df)
+display(schema_drift_df)
+get_missing_columns=get_missing_value_df(schema_drift_df)
+print(get_missing_columns)
+# if len(get_missing_columns)>0:
+#     raise Exception("user defined schema is not matched with spark source schema")
+standardardize_df=get_assign_new_datatype_df(main_df,schema_drift_df)
+display(standardardize_df)
+
+# COMMAND ----------
+
+schema= {
+     "schema":[
+        {"name":"id","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
+        {"name":"NAME","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
+        {"name":"ADDRESS","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
+        {"name":"CITY","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},   
+        {"name":"STATE","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},   
+        {"name":"ZIP","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"LAT","type":"double","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"LON","type":"double","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"PHONE","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"REVENUE","type":"double","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"UTILIZATION","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"audit_source_record_id","type":"long","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"audit_ingestion_timestamp","type":"timestamp","format":"yyyy-MM-dd'T'HH:mm:ss.SSSS","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0}, 
+        {"name":"date_partition","type":"date","format":"NA","is_partition":"yes","partition_stratrgy":"date","how":"to_date(current_timestamp)","partition_level":1}       
+              ]
+    }
