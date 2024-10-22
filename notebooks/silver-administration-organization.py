@@ -108,7 +108,7 @@ dbutils.library.restartPython()
 
 from mlops.dq_processors.dq_loader import DQLoader
 dq_loader=DQLoader(dq_spec)
-df_dict={"bronze_organization_df":bronze_organization_df}
+df_dict={"bronze_organization_df":standardardize_df}
 dq_df_dict=dq_loader.process_dq(spark,df_dict)
 dq_df=dq_df_dict["silver-administration-organization_dq_checks"]
 
@@ -172,6 +172,10 @@ spark.conf.set("spark.databricks.delta.optimizeWrite.enabled", True)
 spark.conf.set("spark.databricks.delta.autoCompact.enabled", True)
 spark.conf.set("spark.databricks.delta.autoOptimize.optimizeWrite", True)
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", True)
+
+# COMMAND ----------
+
+display(good_record_df)
 
 # COMMAND ----------
 
@@ -243,7 +247,9 @@ from pyspark.sql.functions import *
 
 #standartize the columns and do transalations
 def standardized_columns_names(df):
-    new_df_columns = [column.lower() for column in df.columns]
+    new_df_columns=[]
+    for column in df.columns:
+        new_df_columns.append(column)
     return df.toDF(*new_df_columns)
 
 def get_spark_schema_df(input_df):
@@ -280,13 +286,14 @@ def get_missing_value_df(schema_drift_df):
     missing_columns=missing_columns_df.collect()
     return missing_columns
 
-def get_assign_new_datatype_df(argument):
+def get_new_datatype_df(argument):
     switcher={
         "int":IntegerType(),
         "string":StringType(),
         "long":LongType(),
         "boolean":BooleanType(),
         "date":DateType(),
+        "double":DoubleType()
     }
     return switcher.get(argument,"datatype not found")
 
@@ -294,27 +301,23 @@ def get_assign_new_datatype_df(main_df,schema_drift_df):
     type_mismatch_df=schema_drift_df.where("type IS NOT NULL and is_partition != 'yes'")
     type_mismatch=type_mismatch_df.collect()
     for item in type_mismatch:
-        columnname=item[0]
-        current_datatype_string=item[2]
-        user_data_type=item[1]
+        column_name=item[0]
+        current_data_type_string=item[1]
+        user_data_type=item[2]
         print(f"user data type is : {user_data_type}")  
         if user_data_type !="timestamp":
-            new_data_type=get_assign_new_datatype_df(user_data_type)
+            new_data_type=get_new_datatype_df(user_data_type)
             if new_data_type !="datatype not found":
-                main_df=main_df.withColumn(columnname,col(columnname).cast(new_data_type))
+                main_df=main_df.withColumn(column_name,col(column_name).cast(new_data_type))
             else:
-                print(f"data type: {user_data_type} not found for column: {columnname}")
+                print(f"data type: {user_data_type} not found for column: {column_name}")
                 print("exited")
                 exit(0)
         else:
             if current_datatype_string =="string":
                 timestamp_format=item[3]
-                main_df=main_df.withColumn(columnname,to_timestamp(col(columnname),timestamp_format))
-        return main_df
-
-
-
-
+                main_df=main_df.withColumn(column_name,to_timestamp(col(column_name),timestamp_format))
+    return main_df
 
 
 
@@ -344,8 +347,8 @@ schema_drift_df=get_schema_drift_df(schema_joined_df)
 display(schema_drift_df)
 get_missing_columns=get_missing_value_df(schema_drift_df)
 print(get_missing_columns)
-# if len(get_missing_columns)>0:
-#     raise Exception("user defined schema is not matched with spark source schema")
+if len(get_missing_columns)>0:
+   raise Exception("user defined schema is not matched with spark source schema")
 standardardize_df=get_assign_new_datatype_df(main_df,schema_drift_df)
 display(standardardize_df)
 
@@ -353,7 +356,7 @@ display(standardardize_df)
 
 schema= {
      "schema":[
-        {"name":"id","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
+        {"name":"Id","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
         {"name":"NAME","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
         {"name":"ADDRESS","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
         {"name":"CITY","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},   
