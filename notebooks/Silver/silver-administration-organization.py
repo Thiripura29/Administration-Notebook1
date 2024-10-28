@@ -7,7 +7,18 @@ dbutils.widgets.text("config_path","../configs/dev1.json")
 
 # COMMAND ----------
 
+import json
+config_path=dbutils.widgets.get("config_path")
+config=load_config(config_path)
+
+
+# COMMAND ----------
+
 print(config_path)
+
+# COMMAND ----------
+
+print(config)
 
 # COMMAND ----------
 
@@ -108,14 +119,6 @@ display(dq_df)
 
 # COMMAND ----------
 
-from mlops.dq_processors.dq_loader import DQLoader
-dq_loader=DQLoader(dq_spec)
-df_dict={"bronze_organization_df":standardardize_df}
-dq_df_dict=dq_loader.process_dq(spark,df_dict)
-dq_df=dq_df_dict["silver-administration-organization_dq_checks"]
-
-# COMMAND ----------
-
 #identify good records and bad records
 good_record_df=dq_df.where("dq_validations.run_row_success==true").drop('dq_validations')
 bad_records_df=dq_df.where("dq_validations.run_row_success==false")
@@ -139,17 +142,6 @@ partition_column=["Audit_Year","Audit_Month","Audit_Day","audit_table_name"]
 
 bad_records_df.write.mode("append").partitionBy(partition_column).parquet("s3://lakehouse-administration1/dq/silver/silver-administration-organization/bad_records")
                                   
-
-# COMMAND ----------
-
-import json
-config_path=dbutils.widgets.get("config_path")
-config=load_config(config_path)
-
-
-# COMMAND ----------
-
-print(config)
 
 # COMMAND ----------
 
@@ -255,3 +247,11 @@ if len(get_missing_columns)>0:
    raise Exception("user defined schema is not matched with spark source schema")
 standardardize_df=get_assign_new_datatype_df(main_df,schema_drift_df)
 display(standardardize_df)
+
+# COMMAND ----------
+
+from mlops.dq_processors.dq_loader import DQLoader
+dq_loader=DQLoader(dq_spec)
+df_dict={"bronze_organization_df":standardardize_df}
+dq_df_dict=dq_loader.process_dq(spark,df_dict)
+dq_df=dq_df_dict["silver-administration-organization_dq_checks"]
