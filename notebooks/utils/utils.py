@@ -22,7 +22,7 @@ def load_config(config_path):
     :raises ValueError: If the config file format is not JSON.
     """
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path,'r') as f:
             if config_path.endswith('.json'):
                 return json.load(f)
             else:

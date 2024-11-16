@@ -2,7 +2,7 @@
 	"dataproductname": "administration",
 	"catalog-name":"lakehouse_dev",
 	"schema-name":"administration",
-	"bucket-name":"lakehouse-administration1",
+	"bucket-name":"lakehouse-administration2 ",
 	"bronze-prefix":"bronze",
 	"audit_table":"pipeline_audit_log_table",
 	"silver-prefix":"silver",

@@ -1,14 +1,15 @@
 # Databricks notebook source
-# MAGIC %run ./utils/utils
+# MAGIC %run ../utils/utils
 
 # COMMAND ----------
 
-dbutils.widgets.text("config_path","../configs/dev1.json")
+dbutils.widgets.text("config_path","/Workspace/Users/thiripura40@gmail.com/Administration-Notebook1/configs/dev1.json")
 
 # COMMAND ----------
 
 import json
 config_path=dbutils.widgets.get("config_path")
+#config_path = '/Workspace/Users/thiripura40@gmail.com/Administration-Notebook1/configs/dev1.json'
 config=load_config(config_path)
 
 
