@@ -58,5 +58,26 @@ display(silver_organization_df)
 
 # COMMAND ----------
 
+table_list=spark.sql("show tables in lakehouse_dev.administration").collect()
+display(table_list)
 
+# COMMAND ----------
+
+print(target_table_name)
+does_table_exist=False
+for table in table_list:
+  if table[1]==target_table_name:
+    does_table_exist=True
+    break
+  print(does_table_exist)
+
+# COMMAND ----------
+
+col_drop=["rank"]
+silver_organization_df=silver_organization_df.drop(*col_drop)
+
+# COMMAND ----------
+
+if not does_table_exist:
+  silver_organization_df.write.format('delta').option("path",target_path).saveAsTable("target_table_path")
 
