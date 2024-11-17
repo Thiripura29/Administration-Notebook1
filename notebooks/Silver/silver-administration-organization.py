@@ -68,7 +68,7 @@ display(bronze_organization_df)
 
 #apply DQ checks
 
-# python OpsEngine - python setup.py bdist_wheel - create wheel file and upload into s3 location 
+# python OpsEngine1 - python setup.py bdist_wheel - create wheel file and upload into s3 location 
 # https://greatexpectations.io/expectations/expect_column_values_to_match_regex
 
 dq_spec={
@@ -81,7 +81,7 @@ dq_spec={
       "local_fs_root_dir": "/Volumes/lakehouse_dev/administration/dq/silver/silver-administration-organization/root_dir",
       "data_docs_local_fs":"/Volumes/lakehouse_dev/administration/dq/silver/silver-administration-organization/data_docs",
       "result_sink_db_table": "lakehouse_dev.administration.administration_dq_results",
-      "result_sink_location": "s3://lakehouse-administration1/silver/dq/administration/results",
+      "result_sink_location": "s3://lakehouse-administration2/silver/dq/administration/results",
       "fail_on_error": False,
       "result_sink_explode": True,
       "tag_source_data": True,
@@ -94,14 +94,14 @@ dq_spec={
           "function": "expect_column_values_to_match_regex",
           "args": {
             "column": "PHONE",
-             "regex":"^(\d{3}[- ]?)?\d{3}[- ]?\d{4}$"
+             "regex":r"^(\d{3}[- ]?)?\d{3}[- ]?\d{4}$"
           }
         },
         {
           "function": "expect_column_values_to_match_regex",
           "args": {
             "column": "ZIP",
-             "regex":"^\d{5}$"
+             "regex":r"^\d{5}$"
 
           }
         }
@@ -115,98 +115,8 @@ dq_spec={
 
 # COMMAND ----------
 
-display(dq_df)
-
-# COMMAND ----------
-
-#identify good records and bad records
-good_record_df=dq_df.where("dq_validations.run_row_success==true").drop('dq_validations')
-bad_records_df=dq_df.where("dq_validations.run_row_success==false")
-
-# COMMAND ----------
-
-display(bad_records_df)
-
-# COMMAND ----------
-
-from pyspark.sql.functions import day, month, col, current_timestamp, year,lit
-
-bad_records_df= bad_records_df\
-                              .withColumn("dq_audit_ingestion_timestamp", current_timestamp())\
-                               .withColumn("Audit_Day", day(col("audit_ingestion_timestamp")))\
-                               .withColumn("Audit_Month", month(col("audit_ingestion_timestamp")))\
-                               .withColumn("Audit_Year", year(col("audit_ingestion_timestamp")))\
-                                .withColumn("audit_table_name", lit("silver-administration-organization"))
-
-partition_column=["Audit_Year","Audit_Month","Audit_Day","audit_table_name"]
-
-bad_records_df.write.mode("append").partitionBy(partition_column).parquet("s3://lakehouse-administration1/dq/silver/silver-administration-organization/bad_records")
-                                  
-
-# COMMAND ----------
-
-display(good_record_df)
-
-# COMMAND ----------
-
-db_bucket=config["bucket-name"]
-prefix_name=config["silver-prefix"]
-table_name="organizations"
-catalog=config["catalog-name"]
-schema_name=config["schema-name"]
-partitions=["year","month","day"]
-target_path=f"s3://{db_bucket}/{prefix_name}/{table_name}"
-target_table_name="silver_"+table_name
-target_table_path=f"{catalog}.{schema_name}.{target_table_name}"
-
-good_record_df\
-    .write\
-    .format("delta")\
-    .mode("overwrite")\
-    .partitionBy(*partitions)\
-    .option("path",target_path)\
-    .saveAsTable(target_table_path)
-
-# COMMAND ----------
-
 partitions_info=identify_partitions_predicate(good_record_df,partitions)
 display(partitions_info)
-
-# COMMAND ----------
-
-audit_table_name=f"{catalog}.{schema_name}.{config['audit_table']}"
-make_audit_entry(
-{
-    "sink_name":f"{target_table_name}_sink",
-    "data_load_trype":"incremental",
-    "db_schema_name":schema_name,
-    "db_table_name":target_table_name,
-    "data_storage_path":target_path,
-    "timestamp_or_id_column_name":"",
-    "last_processed_timestamp_or_id_column_value":"",
-    "partition_column_info":partitions_info
-},audit_table_name)
-
-
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from lakehouse_dev.administration.pipeline_audit_log_table
-
-# COMMAND ----------
-
-#Apply transformations to the good records
-spark.sql(f"""
-          update lakehouse_dev.administration.pipeline_audit_log_table
-          set processed_status_info_array=
-          case when processed_status_info_array is null then array('{source_name}')
-          else
-           array_union(processed_status_info_array,array('{source_name}')) end
-          where audit_id in ({','.join([f"{item}" for item in bronze_organization_partition_id_to_be_processed])})
-          """
-)
-
 
 # COMMAND ----------
 
@@ -255,3 +165,97 @@ dq_loader=DQLoader(dq_spec)
 df_dict={"bronze_organization_df":standardardize_df}
 dq_df_dict=dq_loader.process_dq(spark,df_dict)
 dq_df=dq_df_dict["silver-administration-organization_dq_checks"]
+
+# COMMAND ----------
+
+display(dq_df)
+
+# COMMAND ----------
+
+#identify good records and bad records
+good_record_df=dq_df.where("dq_validations.run_row_success==true").drop('dq_validations')
+bad_records_df=dq_df.where("dq_validations.run_row_success==false")
+
+# COMMAND ----------
+
+display(bad_records_df)
+
+# COMMAND ----------
+
+from pyspark.sql.functions import day, month, col, current_timestamp, year,lit
+
+bad_records_df= bad_records_df\
+                              .withColumn("dq_audit_ingestion_timestamp", current_timestamp())\
+                               .withColumn("Audit_Day", day(col("audit_ingestion_timestamp")))\
+                               .withColumn("Audit_Month", month(col("audit_ingestion_timestamp")))\
+                               .withColumn("Audit_Year", year(col("audit_ingestion_timestamp")))\
+                                .withColumn("audit_table_name", lit("silver-administration-organization"))
+
+partition_column=["Audit_Year","Audit_Month","Audit_Day","audit_table_name"]
+
+bad_records_df.write.mode("append").partitionBy(partition_column).parquet("s3://lakehouse-administration2/dq/silver/silver-administration-organization/bad_records")
+                                  
+
+# COMMAND ----------
+
+display(good_record_df)
+
+# COMMAND ----------
+
+db_bucket=config["bucket-name"]
+prefix_name=config["silver-prefix"]
+table_name="organizations"
+catalog=config["catalog-name"]
+schema_name=config["schema-name"]
+partitions=["year","month","day"]
+target_path=f"s3://{db_bucket}/{prefix_name}/{table_name}"
+target_table_name="silver_"+table_name
+target_table_path=f"{catalog}.{schema_name}.{target_table_name}"
+
+good_record_df\
+    .write\
+    .format("delta")\
+    .mode("overwrite")\
+    .partitionBy(*partitions)\
+    .option("path",target_path)\
+    .saveAsTable(target_table_path)
+
+# COMMAND ----------
+
+display (target_path)
+
+# COMMAND ----------
+
+audit_table_name=f"{catalog}.{schema_name}.{config['audit_table']}"
+make_audit_entry(
+{
+    "sink_name":f"{target_table_name}_sink",
+    "data_load_trype":"incremental",
+    "db_schema_name":schema_name,
+    "db_table_name":target_table_name,
+    "data_storage_path":target_path,
+    "timestamp_or_id_column_name":"",
+    "last_processed_timestamp_or_id_column_value":"",
+    "partition_column_info":partitions_info
+},audit_table_name)
+
+
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from lakehouse_dev.administration.pipeline_audit_log_table
+
+# COMMAND ----------
+
+#Apply transformations to the good records
+spark.sql(f"""
+          update lakehouse_dev.administration.pipeline_audit_log_table
+          set processed_status_info_array=
+          case when processed_status_info_array is null then array('{source_name}')
+          else
+           array_union(processed_status_info_array,array('{source_name}')) end
+          where audit_id in ({','.join([f"{item}" for item in bronze_organization_partition_id_to_be_processed])})
+          """
+)
+
