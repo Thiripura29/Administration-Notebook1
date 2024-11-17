@@ -3,7 +3,13 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("config_path","/Workspace/Users/thiripura40@gmail.com/Administration-Notebook1/configs/dev1.json")
+dbutils.widgets.text("config_path","../../configs/dev1.json")
+
+# COMMAND ----------
+
+import json
+config_path=dbutils.widgets.get("config_path")
+config=load_config(config_path)
 
 # COMMAND ----------
 
@@ -19,6 +25,18 @@ source_name="gold-administration-organization"
 
 # COMMAND ----------
 
+db_bucket=config["bucket-name"]
+prefix_name=config["gold-prefix"]
+table_name="organizations"
+catalog=config["catalog-name"]
+schema_name=config["schema-name"]
+partitions=["year","month","day"]
+target_path=f"s3://{db_bucket}/{prefix_name}/{table_name}"
+target_table_name="gold_"+table_name
+target_table_path=f"{catalog}.{schema_name}.{target_table_name}"
+
+# COMMAND ----------
+
 silver_organization_partition_id_to_be_processed,silver_organization_partition_to_be_processed=get_partition_info(source_name,'silver_organizations','administration')
 silver_organization_predicate= " OR ".join(list (set(silver_organization_partition_to_be_processed)))
 print(silver_organization_predicate)
@@ -27,8 +45,18 @@ print(silver_organization_predicate)
 
 #Load data
 silver_organization_df=spark.sql(f"""
-        select * from lakehouse_dev.administration.silver_organizations
-        where {silver_organization_predicate}
+        select * ,case when rank >1 then TRUE else FALSE end as flag from
+        (
+          select *, dense_rank() over (partition by id order by Day,Month,Year desc) as rank from
+              (select * from lakehouse_dev.administration.silver_organizations
+                where {silver_organization_predicate}
+              )
+        )
         """)
 
 display(silver_organization_df)
+
+# COMMAND ----------
+
+
+
