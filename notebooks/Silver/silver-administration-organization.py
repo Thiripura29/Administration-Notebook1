@@ -255,7 +255,7 @@ spark.sql(f"""
           case when processed_status_info_array is null then array('{source_name}')
           else
            array_union(processed_status_info_array,array('{source_name}')) end
-          where audit_id in ({','.join([f"{item}" for item in bronze_organization_partition_id_to_be_processed])})
+          where audit_id in ({','.join([f"'{item}'" for item in bronze_organization_partition_id_to_be_processed])})
           """
 )
 
