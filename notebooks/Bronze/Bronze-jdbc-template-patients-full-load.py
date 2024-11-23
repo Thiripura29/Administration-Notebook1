@@ -37,8 +37,11 @@ driver_name=health_config["driver"]
 
 # COMMAND ----------
 
-spark-submit --jars /path/to/mysql-connector-java-8.0.x.jar your_spark_script.py
-
+from pyspark.sql import SparkSession
+spark = SparkSession.builder \
+    .appName("jdbc-example") \
+    .config("spark.jars.packages", "mysql:mysql-connector-java:8.0.x") \
+    .getOrCreate()
 
 # COMMAND ----------
 
@@ -46,10 +49,11 @@ options= {
 "url":f"{url}/healthcare",
 "dbtable":"patients",
 "user":username,
-"password":password,
-"driver":"com.mysql.cj.jdbc.Driver"
+"password":password
+
 }
 df=spark.read.format("jdbc").options(**options).load()
+df.show()
 
 # COMMAND ----------
 
