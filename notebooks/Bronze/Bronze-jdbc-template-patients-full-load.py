@@ -37,23 +37,55 @@ driver_name=health_config["driver"]
 
 # COMMAND ----------
 
+# MAGIC %pip install mysql-connector-python
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+
 from pyspark.sql import SparkSession
+
 spark = SparkSession.builder \
-    .appName("jdbc-example") \
-    .config("spark.jars.packages", "mysql:mysql-connector-java:8.0.x") \
+    .appName("Databricks Shell") \
+    .config("spark.jars", r"C:\Program Files\mysql-connector-j-8.4.0.jar") \
     .getOrCreate()
+
+# COMMAND ----------
+
+display(spark)
+
+# COMMAND ----------
+
+print(spark.conf.get("spark.app.name"))
+
+# COMMAND ----------
+
+spark.stop()
+
+# COMMAND ----------
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.getOrCreate()
+spark._jvm.com.mysql.cj.jdbc.Driver 
 
 # COMMAND ----------
 
 options= {
 "url":f"{url}/healthcare",
+"driver": driver_name,
 "dbtable":"patients",
 "user":username,
 "password":password
 
 }
-df=spark.read.format("jdbc").options(**options).load()
-df.show()
+try :
+  df=spark.read.format('jdbc').options(**options).load()
+except Exception as e:
+    print(f"Error loading data: {e}")
+#df.show()
 
 # COMMAND ----------
 

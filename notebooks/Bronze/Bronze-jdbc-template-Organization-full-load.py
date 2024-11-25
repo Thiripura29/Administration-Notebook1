@@ -3,7 +3,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("config_path","/Workspace/Users/thiripura40@gmail.com/Administration-Notebook1/configs/dev1.json")
+dbutils.widgets.text("config_path","../../configs/dev1.json")
 
 # COMMAND ----------
 
@@ -38,6 +38,7 @@ driver_name=health_config["driver"]
 # COMMAND ----------
 
 options= {
+  "driver":driver_name,
 "url":f"{url}/healthcare",
 "dbtable":"organizations",
 "user":username,
