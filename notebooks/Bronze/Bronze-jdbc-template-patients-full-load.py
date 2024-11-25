@@ -3,7 +3,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("config_path","/Workspace/Users/thiripura40@gmail.com/Administration-Notebook1/configs/dev1.json")
+dbutils.widgets.text("config_path","../../configs/dev1.json")
 
 # COMMAND ----------
 
@@ -37,39 +37,7 @@ driver_name=health_config["driver"]
 
 # COMMAND ----------
 
-# MAGIC %pip install mysql-connector-python
-
-# COMMAND ----------
-
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
-
-from pyspark.sql import SparkSession
-
-spark = SparkSession.builder \
-    .appName("Databricks Shell") \
-    .config("spark.jars", r"C:\Program Files\mysql-connector-j-8.4.0.jar") \
-    .getOrCreate()
-
-# COMMAND ----------
-
-display(spark)
-
-# COMMAND ----------
-
 print(spark.conf.get("spark.app.name"))
-
-# COMMAND ----------
-
-spark.stop()
-
-# COMMAND ----------
-
-from pyspark.sql import SparkSession
-spark = SparkSession.builder.getOrCreate()
-spark._jvm.com.mysql.cj.jdbc.Driver 
 
 # COMMAND ----------
 
@@ -81,15 +49,11 @@ options= {
 "password":password
 
 }
-try :
-  df=spark.read.format('jdbc').options(**options).load()
-except Exception as e:
-    print(f"Error loading data: {e}")
-#df.show()
-
-# COMMAND ----------
-
-display(df)
+#try :
+df=spark.read.format("jdbc").options(**options).load()
+#except Exception as e:
+   # print(f"Error loading data: {e}")
+df.show()
 
 # COMMAND ----------
 

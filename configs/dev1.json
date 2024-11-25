@@ -10,7 +10,7 @@
 	"dq-prefix":"dq",
 	"database-config":{
 	  "healthcare":{
-		"url":"jdbc:myinfra-mysql.cl0gqqqu2o3f.ap-south-1.rds.amazonaws.com",
+		"url":"jdbc:mysql://myinfra-mysql.cl0gqqqu2o3f.ap-south-1.rds.amazonaws.com:3306",
 		"scope_name":"health-care-scope1",
 		"driver":"com.mysql.cj.jdbc.Driver",
 		"sources":[
