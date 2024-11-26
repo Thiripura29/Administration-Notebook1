@@ -45,6 +45,10 @@ source_name="silver-administration-organization"
 
 # COMMAND ----------
 
+print(spark.sparkContext.getConf().get("spark.driver.extraClassPath"))
+
+# COMMAND ----------
+
 bronze_organization_partition_id_to_be_processed,bronze_organization_partition_to_be_processed=get_partition_info(source_name,'bronze_organizations','administration')
 bronze_organization_predicate= " OR ".join(bronze_organization_partition_to_be_processed)
 print(bronze_organization_predicate)
