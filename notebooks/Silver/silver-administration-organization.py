@@ -119,11 +119,6 @@ dq_spec={
 
 # COMMAND ----------
 
-partitions_info=identify_partitions_predicate(good_record_df,partitions)
-display(partitions_info)
-
-# COMMAND ----------
-
 schema= {
      "schema":[
         {"name":"Id","type":"string","format":"NA","is_partition":"no","partition_stratrgy":"NA","how":"NA","partition_level":0},
@@ -202,6 +197,11 @@ bad_records_df.write.mode("append").partitionBy(partition_column).parquet("s3://
 
 # COMMAND ----------
 
+partitions_info=identify_partitions_predicate(good_record_df,partitions)
+display(partitions_info)
+
+# COMMAND ----------
+
 display(good_record_df)
 
 # COMMAND ----------
@@ -263,3 +263,8 @@ spark.sql(f"""
           """
 )
 
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from lakehouse_dev.administration.pipeline_audit_log_table

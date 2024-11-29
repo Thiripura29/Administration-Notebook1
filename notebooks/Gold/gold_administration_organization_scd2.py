@@ -148,3 +148,8 @@ spark.sql(f"""
           where audit_id in ({','.join([f"'{item}'" for item in silver_organization_partition_id_to_be_processed])})
           """
 )
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from lakehouse_dev.administration.pipeline_audit_log_table
